@@ -28,12 +28,7 @@ function frequencies (block_tables)
    freq = {}
    for _, table in pairs(block_tables) do
       for block, _ in pairs(table) do
-         -- Achieve this: freq[block]++
-         if freq[block] == nil then
-            freq[block] = 1
-         else
-            freq[block] = freq[block] + 1
-         end
+	 freq[block] = (freq[block] or 0) + 1
       end
    end
    return freq
