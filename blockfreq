@@ -1,0 +1,73 @@
+#!/usr/bin/env lua
+
+-- My first Lua program :-)
+--
+-- Find the frequency of fixed-size substrings appearing between files.
+-- Juho Snellman told me this will help me with a reverse engineering
+-- problem (trying to make sense of a proprietary packet-trace file).
+--
+-- Written by Luke Gorrie <luke@teclo.net>. Released to the public domain.
+
+-- Example usage:
+--   $ blockfreq 16 /bin/* | sort -nr | head -3
+--   37      FF 7C AB 1A 7A EA 7F 8D D7 23 72 AF 7C CD 19 55 3D 
+--   37      FF 6B C8 07 EC 7D 39 83 8B 53 20 D3 38 C4 B1 BF 9A 
+--   37      FF 6A 3F 5B 9C 8D 44 BA 02 B1 DE AB BB B8 E5 19 02 
+
+-- Return a table of all `block_size' substrings of STRING.
+function blocks (block_size, string) 
+   local tab = {}
+   for i=1, string.len(string) - block_size do
+      tab[string.sub(string, i, i + block_size - 1)] = true
+   end
+   return tab
+end
+
+-- Return a table of block->frequency given an array of block-tables.
+function frequencies (block_tables)
+   freq = {}
+   for _, table in pairs(block_tables) do
+      for block, _ in pairs(table) do
+         -- Achieve this: freq[block]++
+         if freq[block] == nil then
+            freq[block] = 1
+         else
+            freq[block] = freq[block] + 1
+         end
+      end
+   end
+   return freq
+end
+
+-- Example: "foo" => "66 6f 6f "
+function string2hex (string)
+   return ((string.gsub(string, ".",
+                        function (c)
+                           return string.format("%02X ", string.byte(c))
+                        end)))
+end
+
+-- Return the string contents of the file.
+function file_contents (filename)
+   local file = assert(io.open(filename))
+   local content = file:read("*all")
+   file:close(file)
+   return content
+end
+
+-- Print the frequency of each block.
+function main ()
+   local block_size = tonumber(arg[1])
+   local block_tables = {}
+   for index,file in pairs(arg) do
+      if index > 1 then
+         block_tables[index] = blocks(block_size, file_contents(arg[index]))
+      end
+   end
+   for key,value in pairs(frequencies(block_tables)) do
+      print(value, string2hex(key))
+   end
+end
+
+main()
+
